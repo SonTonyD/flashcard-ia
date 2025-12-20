@@ -292,6 +292,9 @@
 					<div class="bulk">
 						<!-- svelte-ignore element_invalid_self_closing_tag -->
 						<textarea
+							autocapitalize="off"
+							spellcheck="false"
+							inputmode="text"
 							bind:value={bulkText}
 							rows="10"
 							placeholder="front--back&#10;red--rouge&#10;blue--bleu"
