@@ -66,6 +66,93 @@
 		loading = false;
 	}
 
+	let showBulkCreate = false;
+	let bulkText = '';
+	let savingBulk = false;
+
+	function openBulkCreate() {
+		showBulkCreate = true;
+		bulkText = ''; // toujours vierge, même si des flashcards existent
+	}
+
+	function parseBulk(text: string) {
+		const lines = text.split('\n');
+		const items: { front: string; back: string }[] = [];
+		const errors: string[] = [];
+
+		for (let i = 0; i < lines.length; i++) {
+			const raw = lines[i].trim();
+			if (!raw) continue;
+
+			const sepIndex = raw.indexOf('--');
+			if (sepIndex === -1) {
+				errors.push(`Ligne ${i + 1}: séparateur "--" manquant`);
+				continue;
+			}
+
+			const front = raw.slice(0, sepIndex).trim();
+			const back = raw.slice(sepIndex + 2).trim();
+
+			if (!front || !back) {
+				errors.push(`Ligne ${i + 1}: front/back vide`);
+				continue;
+			}
+
+			items.push({ front, back });
+		}
+
+		return { items, errors };
+	}
+
+	async function saveBulkFlashcards() {
+		if (!deck) return;
+
+		const { items, errors: parseErrors } = parseBulk(bulkText);
+		if (parseErrors.length > 0) {
+			error = parseErrors.join('\n');
+			return;
+		}
+		if (items.length === 0) {
+			error = 'Aucune flashcard détectée.';
+			return;
+		}
+
+		const token = getSupabaseAccessToken();
+		if (!token) {
+			error = 'Pas de session trouvée. Connecte-toi puis recharge.';
+			return;
+		}
+
+		savingBulk = true;
+		error = null;
+
+		const res = await fetch('/api/flashcard', {
+			method: 'POST',
+			headers: {
+				'Content-Type': 'application/json',
+				Authorization: `Bearer ${token}`
+			},
+			body: JSON.stringify({
+				deck_id: deck.id,
+				items
+			})
+		});
+
+		const body = await res.json().catch(() => ({}));
+		savingBulk = false;
+
+		if (!res.ok) {
+			error = body?.error ?? `Erreur ${res.status}`;
+			return;
+		}
+
+		showBulkCreate = false;
+		bulkText = '';
+
+		// recharge pour voir les nouvelles flashcards ajoutées aux existantes
+		await loadDeck(deck.id);
+	}
+
 	onMount(() => {
 		const id = $page.params.id;
 
@@ -102,6 +189,33 @@
 		</header>
 
 		<section>
+			<section style="margin: 12px 0 16px 0;">
+				<button on:click={openBulkCreate}> Créer flashcards </button>
+
+				{#if showBulkCreate}
+					<div class="bulk">
+						<!-- svelte-ignore element_invalid_self_closing_tag -->
+						<textarea
+							bind:value={bulkText}
+							rows="10"
+							placeholder="front--back&#10;red--rouge&#10;blue--bleu"
+						/>
+
+						<div class="bulk-actions">
+							<button on:click={saveBulkFlashcards} disabled={savingBulk || !bulkText.trim()}>
+								{savingBulk ? '...' : 'Sauvegarder'}
+							</button>
+
+							<button on:click={() => (showBulkCreate = false)} disabled={savingBulk}>
+								Annuler
+							</button>
+						</div>
+
+						<p class="hint">Format: 1 flashcard par ligne, séparée par <code>--</code></p>
+					</div>
+				{/if}
+			</section>
+
 			<h2>Flashcards ({deck.flashcards?.length ?? 0})</h2>
 
 			{#if (deck.flashcards?.length ?? 0) === 0}
@@ -201,5 +315,33 @@
 	}
 	p {
 		margin: 6px 0 10px 0;
+	}
+
+	.bulk {
+		margin-top: 10px;
+		border: 1px solid #eee;
+		border-radius: 12px;
+		padding: 12px;
+	}
+
+	textarea {
+		width: 100%;
+		padding: 10px;
+		border: 1px solid #ddd;
+		border-radius: 10px;
+		font-family:
+			ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, 'Liberation Mono', monospace;
+	}
+
+	.bulk-actions {
+		display: flex;
+		gap: 8px;
+		margin-top: 10px;
+	}
+
+	.hint {
+		color: #666;
+		font-size: 13px;
+		margin-top: 8px;
 	}
 </style>
