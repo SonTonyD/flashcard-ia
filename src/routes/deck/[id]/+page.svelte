@@ -251,6 +251,65 @@
 		await loadDeck(deck.id);
 	}
 
+	let showAiForm = false;
+	let aiTheme = '';
+	let aiDifficulty = '';
+	let aiCount = 10;
+	let aiObjective = '';
+	let aiDetails = '';
+	let generating = false;
+
+	function openAiGenerator() {
+		showAiForm = true;
+	}
+
+	async function generateFlashcardsAI() {
+		const theme = aiTheme.trim();
+		const difficulty = aiDifficulty.trim();
+		const count = Number(aiCount);
+
+		if (!theme || !difficulty || !Number.isFinite(count) || count < 1) return;
+
+		const token = getSupabaseAccessToken();
+		if (!token) {
+			error = 'Pas de session trouvée. Connecte-toi puis recharge.';
+			return;
+		}
+
+		generating = true;
+		error = null;
+
+		const res = await fetch('/api/ai/flashcards', {
+			method: 'POST',
+			headers: {
+				'Content-Type': 'application/json',
+				Authorization: `Bearer ${token}`
+			},
+			body: JSON.stringify({
+				theme,
+				difficulty,
+				count,
+				objective: aiObjective.trim() || undefined,
+				details: aiDetails.trim() || undefined
+			})
+		});
+
+		const body = await res.json().catch(() => ({}));
+		generating = false;
+
+		if (!res.ok) {
+			error = body?.error ?? `Erreur ${res.status}`;
+			return;
+		}
+
+		// ✅ on remplit ton textarea existant
+		showBulkCreate = true;
+		bulkText = body?.lines ?? '';
+
+		// on peut fermer le form IA
+		showAiForm = false;
+	}
+
 	onMount(() => {
 		const id = $page.params.id;
 
@@ -292,6 +351,53 @@
 				<button>
 					<a class="review-btn" href={`/deck/${deck.id}/review`}>Réviser</a>
 				</button>
+
+				<button on:click={openAiGenerator}>Générer flashcards</button>
+
+				{#if showAiForm}
+					<div class="aiBox">
+						<h2>Génération IA</h2>
+
+						<label>
+							Thème
+							<input bind:value={aiTheme} placeholder="ex: Couleurs en anglais/français" />
+						</label>
+
+						<label>
+							Difficulté
+							<input bind:value={aiDifficulty} placeholder="ex: débutant, N5, easy..." />
+						</label>
+
+						<label>
+							Nombre de cartes
+							<input type="number" min="1" max="50" bind:value={aiCount} />
+						</label>
+
+						<label>
+							Objectif (facultatif)
+							<input bind:value={aiObjective} placeholder="ex: Vocabulaire du quotidien" />
+						</label>
+
+						<label>
+							Détails supplémentaires (facultatif)
+							<input
+								bind:value={aiDetails}
+								placeholder="ex: inclure des exemples, éviter les pièges..."
+							/>
+						</label>
+
+						<div class="aiActions">
+							<button
+								on:click={generateFlashcardsAI}
+								disabled={generating || !aiTheme.trim() || !aiDifficulty.trim() || aiCount < 1}
+							>
+								{generating ? '...' : 'Générer'}
+							</button>
+
+							<button on:click={() => (showAiForm = false)} disabled={generating}> Annuler </button>
+						</div>
+					</div>
+				{/if}
 
 				{#if showBulkCreate}
 					<div class="bulk">
