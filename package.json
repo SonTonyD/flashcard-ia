@@ -33,6 +33,7 @@
 		"vite": "^7.2.6"
 	},
 	"dependencies": {
+		"@supabase/ssr": "^0.8.0",
 		"@supabase/supabase-js": "^2.87.3"
 	}
 }
