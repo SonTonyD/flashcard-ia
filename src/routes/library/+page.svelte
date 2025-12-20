@@ -90,6 +90,157 @@
 		loading = false;
 	}
 
+	let newFolderName = '';
+	let creatingFolder = false;
+
+	async function createFolder() {
+		const name = newFolderName.trim();
+		if (!name) return;
+
+		const token = getSupabaseAccessToken();
+		if (!token) {
+			error = 'Pas de session trouvée (token manquant). Connecte-toi, puis recharge la page.';
+			return;
+		}
+
+		creatingFolder = true;
+		error = null;
+
+		const res = await fetch('/api/folder', {
+			method: 'POST',
+			headers: {
+				'Content-Type': 'application/json',
+				Authorization: `Bearer ${token}`
+			},
+			body: JSON.stringify({ name })
+		});
+
+		const body = await res.json().catch(() => ({}));
+
+		creatingFolder = false;
+
+		if (!res.ok) {
+			error = body?.error ?? `Erreur ${res.status}`;
+			return;
+		}
+
+		newFolderName = '';
+		await loadLibrary(); // refresh
+	}
+
+	async function deleteSelectedFolder() {
+		if (!selectedFolderId) return;
+
+		const folder = (library?.folders ?? []).find((f) => f.id === selectedFolderId);
+		const folderName = folder?.name ?? 'ce dossier';
+
+		const ok = confirm(
+			`Supprimer "${folderName}" ?\n\nTous les decks et flashcards dedans seront supprimés.`
+		);
+		if (!ok) return;
+
+		const token = getSupabaseAccessToken();
+		if (!token) {
+			error = 'Pas de session trouvée (token manquant). Connecte-toi, puis recharge la page.';
+			return;
+		}
+
+		error = null;
+
+		const res = await fetch(`/api/folder/${selectedFolderId}`, {
+			method: 'DELETE',
+			headers: { Authorization: `Bearer ${token}` }
+		});
+
+		const body = await res.json().catch(() => ({}));
+
+		if (!res.ok) {
+			error = body?.error ?? `Erreur ${res.status}`;
+			return;
+		}
+
+		// refresh + reset sélection si besoin
+		await loadLibrary();
+
+		const folders = library?.folders ?? [];
+		selectedFolderId = folders.length > 0 ? folders[0].id : null;
+	}
+
+	let newDeckTitle = '';
+	let creatingDeck = false;
+
+	async function createDeck() {
+		const title = newDeckTitle.trim();
+		if (!title) return;
+
+		if (!selectedFolderId) {
+			error = 'Sélectionne un dossier avant de créer un deck.';
+			return;
+		}
+
+		const token = getSupabaseAccessToken();
+		if (!token) {
+			error = 'Pas de session trouvée (token manquant). Connecte-toi, puis recharge la page.';
+			return;
+		}
+
+		creatingDeck = true;
+		error = null;
+
+		const res = await fetch('/api/deck', {
+			method: 'POST',
+			headers: {
+				'Content-Type': 'application/json',
+				Authorization: `Bearer ${token}`
+			},
+			body: JSON.stringify({
+				folder_id: selectedFolderId,
+				title
+			})
+		});
+
+		const body = await res.json().catch(() => ({}));
+
+		creatingDeck = false;
+
+		if (!res.ok) {
+			error = body?.error ?? `Erreur ${res.status}`;
+			return;
+		}
+
+		newDeckTitle = '';
+		await loadLibrary(); // refresh
+	}
+
+	async function deleteDeck(deckId: string, deckTitle: string) {
+		const ok = confirm(
+			`Supprimer le deck "${deckTitle}" ?\n\nSes flashcards seront aussi supprimées.`
+		);
+		if (!ok) return;
+
+		const token = getSupabaseAccessToken();
+		if (!token) {
+			error = 'Pas de session trouvée (token manquant). Connecte-toi, puis recharge la page.';
+			return;
+		}
+
+		error = null;
+
+		const res = await fetch(`/api/deck/${deckId}`, {
+			method: 'DELETE',
+			headers: { Authorization: `Bearer ${token}` }
+		});
+
+		const body = await res.json().catch(() => ({}));
+
+		if (!res.ok) {
+			error = body?.error ?? `Erreur ${res.status}`;
+			return;
+		}
+
+		await loadLibrary(); // refresh
+	}
+
 	onMount(() => {
 		loadLibrary();
 	});
@@ -120,6 +271,21 @@
 			<aside class="sidebar">
 				<h2>Dossiers</h2>
 
+				<div class="create">
+					<input
+						placeholder="Nouveau dossier…"
+						bind:value={newFolderName}
+						on:keydown={(e) => e.key === 'Enter' && createFolder()}
+					/>
+					<button on:click={createFolder} disabled={creatingFolder || !newFolderName.trim()}>
+						{creatingFolder ? '...' : 'Créer'}
+					</button>
+				</div>
+
+				{#if selectedFolderId}
+					<button class="danger" on:click={deleteSelectedFolder}> Supprimer le dossier </button>
+				{/if}
+
 				{#if (library.folders?.length ?? 0) === 0}
 					<p class="hint">Aucun dossier.</p>
 				{:else}
@@ -147,7 +313,18 @@
 				{:else}
 					{@const folder = getSelectedFolder()}
 					<h2>Decks — {folder?.name}</h2>
-
+					{#if selectedFolderId}
+						<div class="create-deck">
+							<input
+								placeholder="Nouveau deck…"
+								bind:value={newDeckTitle}
+								on:keydown={(e) => e.key === 'Enter' && createDeck()}
+							/>
+							<button on:click={createDeck} disabled={creatingDeck || !newDeckTitle.trim()}>
+								{creatingDeck ? '...' : 'Créer'}
+							</button>
+						</div>
+					{/if}
 					{#if (folder?.decks?.length ?? 0) === 0}
 						<p class="hint">Aucun deck dans ce dossier.</p>
 					{:else}
@@ -164,6 +341,10 @@
 										{#if deck.difficulty}<span>Diff: {deck.difficulty}</span>{/if}
 										{#if deck.objective}<span>Obj: {deck.objective}</span>{/if}
 									</div>
+
+									<button class="danger" on:click={() => deleteDeck(deck.id, deck.title)}>
+										Supprimer
+									</button>
 								</article>
 							{/each}
 						</div>
@@ -306,5 +487,43 @@
 		gap: 8px;
 		color: #666;
 		font-size: 12px;
+	}
+
+	.create {
+		display: grid;
+		grid-template-columns: 1fr auto;
+		gap: 8px;
+		margin: 10px 0 12px 0;
+	}
+
+	input {
+		padding: 8px 10px;
+		border: 1px solid #ddd;
+		border-radius: 10px;
+	}
+
+	.danger {
+		width: 100%;
+		margin-top: 8px;
+		border: 1px solid #f2b8b5;
+		background: #fff5f5;
+		border-radius: 10px;
+		padding: 8px 10px;
+	}
+
+	.card .danger {
+		margin-top: 10px;
+		width: 100%;
+		border: 1px solid #f2b8b5;
+		background: #fff5f5;
+		border-radius: 10px;
+		padding: 8px 10px;
+	}
+
+	.create-deck {
+		display: grid;
+		grid-template-columns: 1fr auto;
+		gap: 8px;
+		margin: 10px 0 12px 0;
 	}
 </style>
