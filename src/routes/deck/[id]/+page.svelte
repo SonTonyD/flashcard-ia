@@ -284,6 +284,9 @@
 		<section>
 			<section style="margin: 12px 0 16px 0;">
 				<button on:click={openBulkCreate}> Créer flashcards </button>
+				<button>
+					<a class="review-btn" href={`/deck/${deck.id}/review`}>Réviser</a>
+				</button>
 
 				{#if showBulkCreate}
 					<div class="bulk">
