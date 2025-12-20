@@ -357,9 +357,9 @@
 
 <style>
 	main {
-		padding: 16px;
-		max-width: 1000px;
-		margin: 0 auto;
+		padding: 12px;
+		margin: 0;
+		max-width: 100%;
 		font-family:
 			system-ui,
 			-apple-system,
@@ -369,70 +369,141 @@
 			sans-serif;
 	}
 
+	/* Header mobile : titre + bouton en pile */
 	header {
-		display: flex;
-		align-items: center;
-		justify-content: space-between;
-		gap: 12px;
+		display: grid;
+		gap: 10px;
 		margin-bottom: 12px;
 	}
 
 	h1 {
 		margin: 0;
-		font-size: 22px;
+		font-size: 20px;
+		line-height: 1.2;
 	}
 
+	/* Boutons : gros, faciles à cliquer */
 	button {
-		padding: 8px 10px;
+		padding: 12px 12px;
 		border: 1px solid #ddd;
 		background: #fff;
-		border-radius: 8px;
+		border-radius: 12px;
 		cursor: pointer;
+		font-size: 14px;
+		line-height: 1;
+		-webkit-tap-highlight-color: transparent;
 	}
+
+	button:active {
+		transform: translateY(1px);
+	}
+
 	button:disabled {
 		opacity: 0.6;
 		cursor: default;
+		transform: none;
 	}
 
 	.error {
-		padding: 10px;
+		padding: 12px;
 		border: 1px solid #f2b8b5;
 		background: #fff5f5;
-		border-radius: 10px;
+		border-radius: 12px;
+		font-size: 14px;
 	}
 
 	.hint {
 		color: #666;
-		font-size: 14px;
+		font-size: 13px;
 	}
 
+	/* Layout mobile-first : tout en colonne */
 	.layout {
-		display: grid;
-		grid-template-columns: 260px 1fr;
-		gap: 16px;
+		display: flex;
+		flex-direction: column;
+		gap: 12px;
 		margin-top: 12px;
 	}
 
-	.sidebar {
-		border: 1px solid #eee;
-		border-radius: 12px;
+	/* Panneaux : plus “cards”, bien séparés */
+	.sidebar,
+	.content {
+		border: 2px solid #474747;
+		border-radius: 14px;
 		padding: 12px;
+		background: #fff;
 	}
 
+	h2 {
+		margin: 0 0 10px 0;
+		font-size: 16px;
+		line-height: 1.2;
+	}
+
+	/* Inputs : pleine largeur */
+	input {
+		width: 100%;
+		padding: 12px 12px;
+		border: 1px solid #ddd;
+		border-radius: 12px;
+		font-size: 14px;
+	}
+
+	/* Création dossier / deck : en pile (mobile) */
+	.create,
+	.create-deck {
+		display: grid;
+		grid-template-columns: 1fr;
+		gap: 8px;
+		margin: 10px 0 12px 0;
+	}
+
+	.create button,
+	.create-deck button {
+		width: 100%;
+	}
+
+	/* Boutons danger : plein largeur */
+	.danger {
+		width: 100%;
+		margin-top: 8px;
+		border: 1px solid #f2b8b5;
+		background: #fff5f5;
+		border-radius: 12px;
+		padding: 12px 12px;
+	}
+
+	/* Liste dossiers : chips horizontales scrollables */
 	.folders {
 		list-style: none;
 		padding: 0;
 		margin: 8px 0 0 0;
-		display: grid;
+
+		display: flex;
 		gap: 8px;
+		overflow-x: auto;
+		-webkit-overflow-scrolling: touch;
+		scrollbar-width: none; /* Firefox */
+	}
+
+	.folders::-webkit-scrollbar {
+		display: none; /* Chrome/Safari */
+	}
+
+	.folders li {
+		flex: 0 0 auto;
 	}
 
 	.folders button {
-		width: 100%;
-		display: flex;
-		justify-content: space-between;
+		width: auto;
+		display: inline-flex;
 		align-items: center;
-		border-radius: 10px;
+		justify-content: space-between;
+		gap: 10px;
+
+		padding: 10px 12px;
+		border-radius: 999px; /* look “chip” */
+		white-space: nowrap;
 	}
 
 	.folders button.selected {
@@ -440,90 +511,63 @@
 		background: #f6f6f6;
 	}
 
+	/* Petit compteur */
 	.count {
 		font-size: 12px;
 		color: #666;
+		border: 1px solid #e6e6e6;
+		border-radius: 999px;
+		padding: 2px 8px;
+		background: #fff;
 	}
 
-	.content {
-		border: 1px solid #eee;
-		border-radius: 12px;
-		padding: 12px;
-		min-height: 200px;
-	}
-
-	h2 {
-		margin: 0 0 12px 0;
-		font-size: 18px;
-	}
-
+	/* Grille decks : 1 colonne sur mobile */
 	.grid {
 		display: grid;
-		grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));
-		gap: 12px;
+		grid-template-columns: 1fr;
+		gap: 10px;
 	}
 
+	/* Cartes deck : espacées, lisibles */
 	.card {
 		border: 1px solid #eee;
-		border-radius: 12px;
+		border-radius: 14px;
 		padding: 12px;
 		background: #fff;
 	}
 
 	.card h3 {
 		margin: 0 0 6px 0;
-		font-size: 16px;
+		font-size: 15px;
+		line-height: 1.25;
+	}
+
+	.card h3 a {
+		color: inherit;
+		text-decoration: none;
+	}
+
+	.card h3 a:active {
+		text-decoration: underline;
 	}
 
 	.desc {
 		margin: 0 0 10px 0;
 		color: #444;
-		font-size: 14px;
+		font-size: 13px;
+		line-height: 1.35;
 	}
 
+	/* Meta : plutôt en colonne sur mobile (lisible) */
 	.meta {
-		display: flex;
-		flex-wrap: wrap;
-		gap: 8px;
+		display: grid;
+		gap: 6px;
 		color: #666;
 		font-size: 12px;
 	}
 
-	.create {
-		display: grid;
-		grid-template-columns: 1fr auto;
-		gap: 8px;
-		margin: 10px 0 12px 0;
-	}
-
-	input {
-		padding: 8px 10px;
-		border: 1px solid #ddd;
-		border-radius: 10px;
-	}
-
-	.danger {
-		width: 100%;
-		margin-top: 8px;
-		border: 1px solid #f2b8b5;
-		background: #fff5f5;
-		border-radius: 10px;
-		padding: 8px 10px;
-	}
-
+	/* Le bouton supprimer dans une card */
 	.card .danger {
 		margin-top: 10px;
-		width: 100%;
-		border: 1px solid #f2b8b5;
-		background: #fff5f5;
-		border-radius: 10px;
-		padding: 8px 10px;
-	}
-
-	.create-deck {
-		display: grid;
-		grid-template-columns: 1fr auto;
-		gap: 8px;
-		margin: 10px 0 12px 0;
 	}
 </style>
