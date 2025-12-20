@@ -14,6 +14,10 @@
 		}
 	});
 
+	function goToLibrary() {
+		goto('/library');
+	}
+
 	async function logout() {
 		await supabase.auth.signOut();
 		goto('/login');
@@ -24,4 +28,5 @@
 
 <p>Connecté en tant que {user?.email}</p>
 
+<button on:click={goToLibrary}>Bibliothèque</button>
 <button on:click={logout}>Déconnexion</button>
