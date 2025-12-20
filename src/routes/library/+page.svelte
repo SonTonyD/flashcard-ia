@@ -154,7 +154,7 @@
 						<div class="grid">
 							{#each folder?.decks ?? [] as deck}
 								<article class="card">
-									<h3>{deck.title}</h3>
+									<h3><a href={`/deck/${deck.id}`}>{deck.title}</a></h3>
 
 									{#if deck.description}
 										<p class="desc">{deck.description}</p>

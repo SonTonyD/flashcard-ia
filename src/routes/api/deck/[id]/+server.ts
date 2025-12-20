@@ -39,3 +39,50 @@ export const DELETE: RequestHandler = async ({ request, params }) => {
 
 	return json({ ok: true, id });
 };
+
+export const GET: RequestHandler = async ({ request, params }) => {
+	const token = getBearerToken(request.headers.get('authorization'));
+	if (!token) return json({ error: 'Unauthorized (missing Bearer token)' }, { status: 401 });
+
+	const id = params.id;
+	if (!id) return json({ error: 'Missing deck id' }, { status: 400 });
+
+	const supabase = createClient(PUBLIC_SUPABASE_URL, PUBLIC_SUPABASE_ANON_KEY, {
+		global: { headers: { Authorization: `Bearer ${token}` } },
+		auth: { persistSession: false, autoRefreshToken: false, detectSessionInUrl: false }
+	});
+
+	// valide le JWT
+	const { data: userData, error: userErr } = await supabase.auth.getUser(token);
+	if (userErr || !userData.user)
+		return json({ error: 'Unauthorized (invalid token)' }, { status: 401 });
+
+	// deck + flashcards (simple)
+	const { data, error } = await supabase
+		.from('decks')
+		.select(
+			`
+      id,
+      folder_id,
+      title,
+      description,
+      difficulty,
+      objective,
+      created_at,
+      flashcards (
+        id,
+        front,
+        back,
+        status,
+        created_at
+      )
+    `
+		)
+		.eq('id', id)
+		.maybeSingle();
+
+	if (error) return json({ error: error.message }, { status: 500 });
+	if (!data) return json({ error: 'Deck not found' }, { status: 404 });
+
+	return json({ deck: data });
+};
