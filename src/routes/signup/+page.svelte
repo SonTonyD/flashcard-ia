@@ -21,7 +21,7 @@
 		if (signUpError) {
 			error = signUpError.message;
 		} else {
-			goto('/app');
+			goto('/library');
 		}
 	}
 </script>

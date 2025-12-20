@@ -26,7 +26,7 @@
 		if (loginError) {
 			error = loginError.message;
 		} else {
-			goto('/app');
+			goto('/library');
 		}
 	}
 </script>
