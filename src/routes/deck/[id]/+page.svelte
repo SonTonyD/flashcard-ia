@@ -153,6 +153,99 @@
 		await loadDeck(deck.id);
 	}
 
+	let editingId: string | null = null;
+	let editFront = '';
+	let editBack = '';
+	let editStatus = 'NEW';
+	let savingEdit = false;
+
+	function startEdit(c: Flashcard) {
+		editingId = c.id;
+		editFront = c.front;
+		editBack = c.back;
+		editStatus = c.status ?? 'NEW';
+	}
+
+	function cancelEdit() {
+		editingId = null;
+		editFront = '';
+		editBack = '';
+		editStatus = 'NEW';
+	}
+
+	async function saveEdit() {
+		if (!deck || !editingId) return;
+
+		const front = editFront.trim();
+		const back = editBack.trim();
+		if (!front || !back) {
+			error = 'Front et Back sont obligatoires.';
+			return;
+		}
+
+		const token = getSupabaseAccessToken();
+		if (!token) {
+			error = 'Pas de session trouvée. Connecte-toi puis recharge.';
+			return;
+		}
+
+		savingEdit = true;
+		error = null;
+
+		const res = await fetch('/api/flashcard', {
+			method: 'POST',
+			headers: {
+				'Content-Type': 'application/json',
+				Authorization: `Bearer ${token}`
+			},
+			body: JSON.stringify({
+				id: editingId,
+				front,
+				back,
+				status: editStatus
+			})
+		});
+
+		const body = await res.json().catch(() => ({}));
+		savingEdit = false;
+
+		if (!res.ok) {
+			error = body?.error ?? `Erreur ${res.status}`;
+			return;
+		}
+
+		cancelEdit();
+		await loadDeck(deck.id);
+	}
+
+	async function deleteFlashcard(flashcardId: string) {
+		const ok = confirm('Supprimer cette flashcard ?');
+		if (!ok) return;
+
+		const token = getSupabaseAccessToken();
+		if (!token) {
+			error = 'Pas de session trouvée. Connecte-toi puis recharge.';
+			return;
+		}
+		if (!deck) return;
+
+		error = null;
+
+		const res = await fetch(`/api/flashcard/${flashcardId}`, {
+			method: 'DELETE',
+			headers: { Authorization: `Bearer ${token}` }
+		});
+
+		const body = await res.json().catch(() => ({}));
+
+		if (!res.ok) {
+			error = body?.error ?? `Erreur ${res.status}`;
+			return;
+		}
+
+		await loadDeck(deck.id);
+	}
+
 	onMount(() => {
 		const id = $page.params.id;
 
@@ -224,14 +317,53 @@
 				<div class="list">
 					{#each deck.flashcards ?? [] as c}
 						<article class="card">
-							<div class="row">
-								<strong>Front</strong>
-								<span class="status">{c.status}</span>
-							</div>
-							<p>{c.front}</p>
+							{#if editingId === c.id}
+								<div class="edit">
+									<label>
+										Front
+										<input bind:value={editFront} />
+									</label>
 
-							<strong>Back</strong>
-							<p>{c.back}</p>
+									<label>
+										Back
+										<input bind:value={editBack} />
+									</label>
+
+									<label>
+										Status
+										<select bind:value={editStatus}>
+											<option value="NEW">NEW</option>
+											<option value="LEARNING">LEARNING</option>
+											<option value="REVIEW">REVIEW</option>
+											<option value="MASTERED">MASTERED</option>
+										</select>
+									</label>
+
+									<div class="edit-actions">
+										<button
+											on:click={saveEdit}
+											disabled={savingEdit || !editFront.trim() || !editBack.trim()}
+										>
+											{savingEdit ? '...' : 'Sauvegarder'}
+										</button>
+										<button on:click={cancelEdit} disabled={savingEdit}> Annuler </button>
+									</div>
+								</div>
+							{:else}
+								<div class="row">
+									<strong>Front</strong>
+									<span class="status">{c.status}</span>
+								</div>
+								<p>{c.front}</p>
+
+								<strong>Back</strong>
+								<p>{c.back}</p>
+
+								<div class="actions">
+									<button on:click={() => startEdit(c)}>Modifier</button>
+									<button class="danger" on:click={() => deleteFlashcard(c.id)}>Supprimer</button>
+								</div>
+							{/if}
 						</article>
 					{/each}
 				</div>
@@ -343,5 +475,35 @@
 		color: #666;
 		font-size: 13px;
 		margin-top: 8px;
+	}
+
+	.actions {
+		display: flex;
+		gap: 8px;
+		margin-top: 10px;
+	}
+
+	.edit {
+		display: grid;
+		gap: 10px;
+	}
+
+	.edit label {
+		display: grid;
+		gap: 6px;
+		font-size: 13px;
+		color: #444;
+	}
+
+	select {
+		padding: 8px 10px;
+		border: 1px solid #ddd;
+		border-radius: 10px;
+		background: #fff;
+	}
+
+	.edit-actions {
+		display: flex;
+		gap: 8px;
 	}
 </style>
