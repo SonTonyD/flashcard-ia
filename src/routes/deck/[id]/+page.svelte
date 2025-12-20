@@ -76,7 +76,12 @@
 	}
 
 	function parseBulk(text: string) {
-		const lines = text.split('\n');
+		// 🔒 Normalisation iOS (— / – → --)
+		const normalizedText = text
+			.replace(/\u2014/g, '--') // —
+			.replace(/\u2013/g, '--'); // –
+
+		const lines = normalizedText.split('\n');
 		const items: { front: string; back: string }[] = [];
 		const errors: string[] = [];
 
@@ -293,7 +298,6 @@
 						<!-- svelte-ignore element_invalid_self_closing_tag -->
 						<textarea
 							autocapitalize="off"
-							spellcheck="false"
 							inputmode="text"
 							bind:value={bulkText}
 							rows="10"
