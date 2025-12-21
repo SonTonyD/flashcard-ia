@@ -26,6 +26,13 @@
 	let queue: Flashcard[] = [];
 	let flipped = false;
 
+	const FLIP_MS = 280;
+	let advancing = false;
+
+	function sleep(ms: number) {
+		return new Promise((r) => setTimeout(r, ms));
+	}
+
 	function getSupabaseAccessToken(): string | null {
 		const key = Object.keys(localStorage).find(
 			(k) => k.startsWith('sb-') && k.endsWith('-auth-token')
@@ -95,19 +102,33 @@
 		loading = false;
 	}
 
-	function markKnown() {
-		if (queue.length === 0) return;
-		// retire la carte de la session (compteur diminue)
+	async function markKnown() {
+		if (queue.length === 0 || advancing) return;
+		advancing = true;
+
+		// 1) remettre la carte face avant
+		flipped = false;
+
+		// 2) attendre la fin de l'animation pour éviter le spoil
+		await sleep(FLIP_MS);
+
+		// 3) avancer
 		queue = queue.slice(1);
-		resetFlip();
+
+		advancing = false;
 	}
 
-	function markAgain() {
-		if (queue.length === 0) return;
-		// remet la carte à la fin (compteur inchangé)
+	async function markAgain() {
+		if (queue.length === 0 || advancing) return;
+		advancing = true;
+
+		flipped = false;
+		await sleep(FLIP_MS);
+
 		const [first, ...rest] = queue;
 		queue = [...rest, first];
-		resetFlip();
+
+		advancing = false;
 	}
 
 	function shuffleCurrent() {
